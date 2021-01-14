@@ -6,7 +6,7 @@
 /*   By: rtrant <rtrant@student.21-school.ru>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/01/11 10:32:36 by rtrant            #+#    #+#             */
-/*   Updated: 2021/01/11 11:44:42 by rtrant           ###   ########.fr       */
+/*   Updated: 2021/01/14 19:53:15 by rtrant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,6 @@ void	ft_putnbr_fd(int n, int fd)
 		ft_putnbr_fd(num / 10, fd);
 	ft_putchar_fd((num % 10) + '0', fd);
 }
-
 
 void	ft_putchar_fd(char c, int fd)
 {
