@@ -6,36 +6,36 @@
 /*   By: rtrant <rtrant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/01/11 11:44:48 by rtrant            #+#    #+#             */
-/*   Updated: 2021/04/25 15:22:27 by rtrant           ###   ########.fr       */
+/*   Updated: 2021/04/25 15:20:36 by rtrant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo_one.h"
+#include "philo_two.h"
 
-extern double			g_start_time;
-extern pthread_mutex_t	g_write_mutex;
-extern int				g_status;
+extern double	g_start_time;
+extern sem_t	*g_write_sem;
+extern int		g_status;
 
 void	thread_putstr_fd(char *s, int fd)
 {
-	pthread_mutex_lock(&g_write_mutex);
+	sem_wait(g_write_sem);
 	ft_putstr_fd(s, fd);
-	pthread_mutex_unlock(&g_write_mutex);
+	sem_post(g_write_sem);
 }
 
 void	thread_putnbr_fd(int n, int fd)
 {
-	pthread_mutex_lock(&g_write_mutex);
+	sem_wait(g_write_sem);
 	ft_putnbr_fd(n, fd);
-	pthread_mutex_unlock(&g_write_mutex);
+	sem_post(g_write_sem);
 }
 
 void	thread_print(char *msg, int n)
 {
-	pthread_mutex_lock(&g_write_mutex);
+	sem_wait(g_write_sem);
 	if (g_status)
 	{
-		pthread_mutex_unlock(&g_write_mutex);
+		sem_post(g_write_sem);
 		return ;
 	}
 	ft_putnbr_fd(get_time_since(g_start_time), 1);
@@ -44,5 +44,5 @@ void	thread_print(char *msg, int n)
 	ft_putstr_fd(" ", 1);
 	ft_putstr_fd(msg, 1);
 	ft_putstr_fd("\n", 1);
-	pthread_mutex_unlock(&g_write_mutex);
+	sem_post(g_write_sem);
 }

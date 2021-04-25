@@ -6,21 +6,23 @@
 /*   By: rtrant <rtrant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/01/14 20:02:24 by rtrant            #+#    #+#             */
-/*   Updated: 2021/04/25 15:22:50 by rtrant           ###   ########.fr       */
+/*   Updated: 2021/04/25 15:23:14 by rtrant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo_one.h"
+#include "philo_three.h"
 
-extern int				g_status;
-extern pthread_mutex_t	g_status_mutex;
-extern pthread_mutex_t	*g_forks;
+extern sem_t	*g_status_sem;
+extern sem_t	*g_forks_sem;
+extern sem_t	*g_write_sem;
 
 void	*run_philo(void *data)
 {
 	t_philo	*philo;
 	double	last_eaten;
 
+	if (!(init_thread_semaphores()))
+		return (NULL);
 	philo = (t_philo *)data;
 	start_timer(&last_eaten);
 	if (philo->n % 3 == 0)
@@ -36,13 +38,11 @@ void	*p_sleep(double *last_eaten, t_philo *philo)
 {
 	double	time_not_eaten;
 
-	if (g_status)
-		return (NULL);
 	time_not_eaten = get_time_since(*last_eaten);
-	if (time_not_eaten > philo->time_to_die || g_status)
+	if (time_not_eaten > philo->time_to_die)
 		return (die(philo));
 	thread_print("is sleeping", philo->n);
-	if (time_not_eaten > philo->time_to_die || g_status)
+	if (time_not_eaten > philo->time_to_die)
 		return (die(philo));
 	usleep(ms_to_microseconds(philo->time_to_sleep));
 	think(last_eaten, philo);
@@ -53,10 +53,8 @@ void	*think(double *last_eaten, t_philo *philo)
 {
 	double	time_not_eaten;
 
-	if (g_status)
-		return (NULL);
 	time_not_eaten = get_time_since(*last_eaten);
-	if (time_not_eaten > philo->time_to_die || g_status)
+	if (time_not_eaten > philo->time_to_die)
 		return (die(philo));
 	thread_print("is thinking", philo->n);
 	eat(last_eaten, philo);
@@ -68,22 +66,22 @@ void	*eat(double *last_eaten, t_philo *philo)
 	double	time_not_eaten;
 
 	time_not_eaten = get_time_since(*last_eaten);
-	if (time_not_eaten > philo->time_to_die || g_status)
+	if (time_not_eaten > philo->time_to_die)
 		return (die(philo));
 	lock_left_fork(philo);
-	time_not_eaten = get_time_since(*last_eaten);
-	if (time_not_eaten > philo->time_to_die || g_status)
-		return (die(philo));
 	thread_print("has taken a fork", philo->n);
+	time_not_eaten = get_time_since(*last_eaten);
+	if (time_not_eaten > philo->time_to_die)
+		return (die(philo));
 	lock_right_fork(philo);
 	time_not_eaten = get_time_since(*last_eaten);
-	if (time_not_eaten > philo->time_to_die || g_status)
+	if (time_not_eaten > philo->time_to_die)
 		return (die(philo));
 	thread_print("is eating", philo->n);
 	usleep(ms_to_microseconds(philo->time_to_eat));
 	handle_fullness(philo);
 	time_not_eaten = 0;
-	if (time_not_eaten > philo->time_to_die || g_status)
+	if (time_not_eaten > philo->time_to_die)
 		return (die(philo));
 	start_timer(last_eaten);
 	unlock_left_fork(philo);
@@ -94,13 +92,9 @@ void	*eat(double *last_eaten, t_philo *philo)
 
 void	*die(t_philo *philo)
 {
-	pthread_mutex_lock(&g_status_mutex);
-	if (!g_status)
-		thread_print("died", philo->n);
-	g_status = 1;
-	pthread_mutex_unlock(&g_status_mutex);
-	pthread_mutex_unlock(&(g_forks[philo->n]));
-	pthread_mutex_unlock(&(g_forks[philo->n == (philo->ph_count - 1) ?
-							0 : philo->n + 1]));
+	thread_print("died", philo->n);
+	sem_wait(g_status_sem);
+	unlock_left_fork(philo);
+	unlock_right_fork(philo);
 	return (NULL);
 }

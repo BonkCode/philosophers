@@ -6,15 +6,15 @@
 /*   By: rtrant <rtrant@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/01/14 20:02:24 by rtrant            #+#    #+#             */
-/*   Updated: 2021/04/25 15:22:50 by rtrant           ###   ########.fr       */
+/*   Updated: 2021/04/25 15:21:13 by rtrant           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philo_one.h"
+#include "philo_two.h"
 
-extern int				g_status;
-extern pthread_mutex_t	g_status_mutex;
-extern pthread_mutex_t	*g_forks;
+extern int		g_status;
+extern sem_t	*g_status_sem;
+extern sem_t	*g_forks_sem;
 
 void	*run_philo(void *data)
 {
@@ -71,10 +71,10 @@ void	*eat(double *last_eaten, t_philo *philo)
 	if (time_not_eaten > philo->time_to_die || g_status)
 		return (die(philo));
 	lock_left_fork(philo);
+	thread_print("has taken a fork", philo->n);
 	time_not_eaten = get_time_since(*last_eaten);
 	if (time_not_eaten > philo->time_to_die || g_status)
 		return (die(philo));
-	thread_print("has taken a fork", philo->n);
 	lock_right_fork(philo);
 	time_not_eaten = get_time_since(*last_eaten);
 	if (time_not_eaten > philo->time_to_die || g_status)
@@ -94,13 +94,12 @@ void	*eat(double *last_eaten, t_philo *philo)
 
 void	*die(t_philo *philo)
 {
-	pthread_mutex_lock(&g_status_mutex);
+	sem_wait(g_status_sem);
 	if (!g_status)
 		thread_print("died", philo->n);
 	g_status = 1;
-	pthread_mutex_unlock(&g_status_mutex);
-	pthread_mutex_unlock(&(g_forks[philo->n]));
-	pthread_mutex_unlock(&(g_forks[philo->n == (philo->ph_count - 1) ?
-							0 : philo->n + 1]));
+	sem_post(g_status_sem);
+	unlock_left_fork(philo);
+	unlock_right_fork(philo);
 	return (NULL);
 }
